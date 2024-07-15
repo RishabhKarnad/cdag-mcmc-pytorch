@@ -1,0 +1,74 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                ">",
+                "debug-out.txt"
+            ]
+        },
+        {
+            "name": "Run experiments",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--n_data_samples",
+                "10000",
+                "--n_mcmc_samples",
+                "10",
+                "--n_mcmc_warmup",
+                "5",
+                "--max_em_iters",
+                "2",
+                "--max_mle_iters",
+                "100",
+                "--min_clusters",
+                "3",
+                "--max_clusters",
+                "3",
+                "--num_chains",
+                "2",
+                "--dataset",
+                "7var",
+                "--output_path",
+                "./results/debug"
+            ]
+        },
+        {
+            "name": "Run baselines",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--n_clusters",
+                "3",
+                "--dataset",
+                "7var",
+                "--random_seed",
+                "42",
+                "--n_data_samples",
+                "10",
+                "--output_path",
+                "./results/debug/greedy",
+                "--n_runs",
+                "2",
+                "--n_iters",
+                "100",
+            ]
+        }
+    ]
+}

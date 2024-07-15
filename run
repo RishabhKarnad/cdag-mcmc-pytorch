@@ -1,0 +1,51 @@
+#! /bin/bash
+
+DIR=$(date +"%Y-%m-%d-%T")
+
+CUDA_VISIBLE_DEVICES='0'
+
+mkdir -p results/$DIR/bayesian/3var
+mkdir -p results/$DIR/bayesian/4var
+mkdir -p results/$DIR/bayesian/7var
+
+N_DATA_SAMPLES=1000
+N_MCMC_SAMPLES=1000
+N_MCMC_WARMUP=250
+MAX_EM_ITERS=5
+MAX_MLE_ITERS=1000
+
+python run_experiment.py \
+    --n_data_samples $N_DATA_SAMPLES \
+    --n_mcmc_samples $N_MCMC_SAMPLES \
+    --n_mcmc_warmup $N_MCMC_WARMUP \
+    --max_em_iters $MAX_EM_ITERS \
+    --max_mle_iters $MAX_MLE_ITERS \
+    --min_clusters 2 \
+    --max_clusters 2 \
+    --num_chains 4 \
+    --dataset '3var' \
+    --output_path results/$DIR/bayesian/3var
+
+python run_experiment.py \
+    --n_data_samples $N_DATA_SAMPLES \
+    --n_mcmc_samples $N_MCMC_SAMPLES \
+    --n_mcmc_warmup $N_MCMC_WARMUP \
+    --max_em_iters $MAX_EM_ITERS \
+    --max_mle_iters $MAX_MLE_ITERS \
+    --min_clusters 2 \
+    --max_clusters 2 \
+    --num_chains 4 \
+    --dataset '4var' \
+    --output_path results/$DIR/bayesian/4var
+
+python run_experiment.py \
+    --n_data_samples $N_DATA_SAMPLES \
+    --n_mcmc_samples 2000 \
+    --n_mcmc_warmup 500 \
+    --max_em_iters 10 \
+    --max_mle_iters 1000 \
+    --min_clusters 3 \
+    --max_clusters 3 \
+    --num_chains 8 \
+    --dataset '7var' \
+    --output_path results/$DIR/bayesian/7var

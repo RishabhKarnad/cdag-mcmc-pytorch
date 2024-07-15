@@ -1,0 +1,39 @@
+import torch
+import scipy.stats as stats
+
+from .clustering_distribution import ClusteringDistribution
+from .graph_distribution import SparseDAGDistribution
+from .cluster_linear_gaussian_network import ClusterLinearGaussianNetwork
+from utils.cdag import clustering_to_matrix
+
+
+class CDAGJointDistribution(torch.nn.Module):
+    def __init__(self,
+                 n_vars,
+                 min_clusters,
+                 mean_clusters,
+                 max_clusters,
+                 cluster_prior=ClusteringDistribution,
+                 graph_prior=SparseDAGDistribution,
+                 likelihood=ClusterLinearGaussianNetwork):
+        super().__init__()
+        self.n_vars = n_vars
+        self.min_clusters = min_clusters
+        self.mean_clusters = mean_clusters
+        self.max_clusters = max_clusters
+        self.cluster_prior = cluster_prior(n_vars, max_clusters)
+        self.graph_prior = graph_prior(n_vars)
+        self.likelihood = likelihood(n_vars)
+
+    def logpmf(self, C, G, X):
+        k = len(C)
+        C_mat = clustering_to_matrix(C)
+        p_k = stats.randint(self.min_clusters, self.max_clusters+1).logpmf(k)
+        p_c = self.cluster_prior.logpmf(C_mat)
+        p_g = self.graph_prior.logpmf(G)
+        p_d = self.likelihood.logpmf(X, C_mat, G)
+
+        return p_k + p_c + p_g + p_d
+
+    def sample(self):
+        raise NotImplementedError
