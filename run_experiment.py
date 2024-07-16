@@ -188,7 +188,6 @@ def train(data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_c
             optimizer.zero_grad()
             loss = -torch.mean(torch.vmap(model.likelihood.logpmf,
                                (None, 0, 0), 0)(data, Cs, E_Cs))
-            loss.requires_grad = True
             loss.backward()
             optimizer.step()
             loss_trace.append(loss.item())
