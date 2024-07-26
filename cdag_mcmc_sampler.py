@@ -215,14 +215,14 @@ class CDAGSampler:
             C_t, G_t = self.step(
                 cb=lambda K: it.set_postfix_str(f'{len(K)} clusters'))
             self.samples.append((C_t, G_t))
-            self.scores.append(self.cdag_score((C_t, G_t)))
+            self.scores.append(self.cdag_score((C_t, G_t)).item())
 
         it = tqdm(range(n_samples), 'Sampling with MCMC')
         for i in it:
             C_t, G_t = self.step(
                 cb=lambda K: it.set_postfix_str(f'{len(K)} clusters'))
             self.samples.append((C_t, G_t))
-            self.scores.append(self.cdag_score((C_t, G_t)))
+            self.scores.append(self.cdag_score((C_t, G_t)).item())
 
     def get_samples(self):
         return self.samples[-(self.n_samples+1):-1]

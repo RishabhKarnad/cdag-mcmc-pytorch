@@ -25,7 +25,7 @@ def stringify_cdag(G_C):
 def unstringify_cdag(cdag_string):
     C_stringified, E_C_stringified = cdag_string.split(':')
     C = C_stringified.split('-')
-    C = [set(map(float, c_i.split(','))) for c_i in C]
+    C = [set(map(int, c_i.split(','))) for c_i in C]
     n = len(C)
     E_C = list(map(float, map(float, E_C_stringified.split(','))))
     E_C = torch.tensor(E_C).reshape(n, n)
@@ -58,8 +58,8 @@ def matrix_to_clustering(C):
 
 def get_covariance_for_clustering(C, sigma=0.1, rho=0.99):
     d = C.shape[0]
-    I = torch.eye(d)
-    F = torch.ones((d, d))
+    I = torch.eye(d).to(C.device)
+    F = torch.ones((d, d)).to(C.device)
     Cov = sigma * (I + rho*(F - I))
     mask = C@C.T
     Cov = Cov * mask

@@ -51,7 +51,6 @@ def visualize_graphs(graphs, filename):
 def plot_graph_scores(scores, opt_score, filepath):
     lengths = [len(s) for s in scores]
     scores = list(chain(*scores))
-    scores = list(map(lambda x: x.item(), scores))
     plt.plot(scores)
     for i, l in enumerate(lengths):
         plt.axvline(l*(i+1), color='green')

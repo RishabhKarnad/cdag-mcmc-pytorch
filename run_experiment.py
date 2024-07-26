@@ -3,6 +3,8 @@ import torch
 from torch.optim import Adam
 from argparse import ArgumentParser
 import matplotlib.pyplot as plt
+import torch.utils
+import torch.utils.data
 from tqdm import tqdm
 
 import os
@@ -16,6 +18,7 @@ from utils.cdag import clustering_to_matrix, get_graphs_by_count
 from utils.visualization import visualize_graphs, plot_graph_scores
 from utils.sys import initialize_logger
 from utils.tensor import zero_pad
+from utils.dataset import CustomDataset
 
 
 def parse_args():
@@ -149,6 +152,10 @@ def train(data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_c
 
     m, n = data.shape
 
+    dataset = CustomDataset(data)
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=64, shuffle=True)
+
     initial_cdag_sample = None
 
     model = CDAGJointDistribution(n,
@@ -157,10 +164,12 @@ def train(data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_c
                                   max_clusters=max_clusters)
 
     def score(C, E_C):
-        return model.logpmf(C, E_C, data)
+        return model.logpmf(C, E_C, data, batch=True)
 
     for i in range(max_em_iters):
         print(f'EM iteration {i+1}/{max_em_iters}')
+
+        model.to('cpu')
 
         cdag_sampler = CDAGSampler(data=data,
                                    score=score,
@@ -168,10 +177,14 @@ def train(data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_c
                                    max_clusters=max_clusters,
                                    initial_sample=initial_cdag_sample)
 
-        cdag_sampler.sample(n_samples=n_mcmc_samples, n_warmup=n_mcmc_warmup)
+        with torch.no_grad():
+            cdag_sampler.sample(n_samples=n_mcmc_samples,
+                                n_warmup=n_mcmc_warmup)
 
         samples_i, scores_i = cdag_sampler.get_samples(), cdag_sampler.get_scores()
         proposal_G_C.append(cdag_sampler.G_C_proposed)
+
+        model.to('cuda')
 
         initial_cdag_sample = samples_i[-1]
 
@@ -180,17 +193,22 @@ def train(data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_c
         ks = torch.tensor(list(map(lambda G_C: len(G_C[0]), samples_i)))
         k_max = torch.max(ks).item()
         Cs = torch.stack(
-            list(map(lambda G_C: (clustering_to_matrix(G_C[0], k=k_max)), samples_i)))
+            list(
+                map(lambda G_C: (clustering_to_matrix(G_C[0], k=k_max)), samples_i))
+        ).to('cuda')
         E_Cs = torch.stack(
-            list(map(lambda G_C: (zero_pad(G_C[1], k=k_max)), samples_i)))
+            list(map(lambda G_C: (zero_pad(G_C[1], k=k_max)), samples_i))
+        ).to('cuda')
 
         for _ in tqdm(range(args.max_mle_iters), 'Estimating theta'):
-            optimizer.zero_grad()
-            loss = -torch.mean(torch.vmap(model.likelihood.logpmf,
-                               (None, 0, 0), 0)(data, Cs, E_Cs))
-            loss.backward()
-            optimizer.step()
-            loss_trace.append(loss.item())
+            for i, X in enumerate(dataloader):
+                X = X.to('cuda')
+                optimizer.zero_grad()
+                loss = -torch.mean(torch.vmap(model.likelihood.logpmf,
+                                              (None, 0, 0), 0)(X, Cs, E_Cs))
+                loss.backward()
+                optimizer.step()
+                loss_trace.append(loss.item())
 
         samples.append(samples_i)
         scores.append(scores_i)
@@ -221,7 +239,6 @@ def gen_data(args):
 
 def run(args):
     torch.manual_seed(args.random_seed)
-    torch.use_deterministic_algorithms(True)
 
     data, scm = gen_data(args)
 

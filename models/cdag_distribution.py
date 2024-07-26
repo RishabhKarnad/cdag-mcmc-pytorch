@@ -5,6 +5,7 @@ from .clustering_distribution import ClusteringDistribution
 from .graph_distribution import SparseDAGDistribution
 from .cluster_linear_gaussian_network import ClusterLinearGaussianNetwork
 from utils.cdag import clustering_to_matrix
+from utils.dataset import CustomDataset
 
 
 class CDAGJointDistribution(torch.nn.Module):
@@ -25,13 +26,22 @@ class CDAGJointDistribution(torch.nn.Module):
         self.graph_prior = graph_prior(n_vars)
         self.likelihood = likelihood(n_vars)
 
-    def logpmf(self, C, G, X):
+    def logpmf(self, C, G, X, batch=False):
         k = len(C)
         C_mat = clustering_to_matrix(C)
         p_k = stats.randint(self.min_clusters, self.max_clusters+1).logpmf(k)
         p_c = self.cluster_prior.logpmf(C_mat)
         p_g = self.graph_prior.logpmf(G)
-        p_d = self.likelihood.logpmf(X, C_mat, G)
+
+        p_d = 0
+        if batch:
+            dataset = CustomDataset(X)
+            dataloader = torch.utils.data.DataLoader(
+                dataset, batch_size=64, shuffle=True)
+            for _, X_i in enumerate(dataloader):
+                p_d += self.likelihood.logpmf(X_i, C_mat, G)
+        else:
+            p_d = self.likelihood.logpmf(X, C_mat, G)
 
         return p_k + p_c + p_g + p_d
 
