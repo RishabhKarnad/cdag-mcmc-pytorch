@@ -35,7 +35,7 @@ class DataGen:
                               [0.,  0.,  0., -15.,  2.,  0.,  0.]])
 
         mu = torch.zeros(7)
-        sigma = self.obs_noise*torch.eye(7)
+        sigma = self.obs_noise * torch.eye(7)
 
         Z = MultivariateNormal(mu, sigma).sample((n_samples,))
 
@@ -89,21 +89,21 @@ class DataGen:
             mu_3 = torch.tensor([3.2, 1.5])
 
         if confounded:
-            sigma_1 = 0.1*torch.tensor([[1, 0.99, 0.99],
-                                        [0.99, 1, 0.99],
-                                        [0.99, 0.99, 1]])
-            sigma_2 = 0.1*torch.tensor([[1, 0.99],
-                                        [0.99, 1]])
-            sigma_3 = 0.1*torch.tensor([[1, 0.99],
-                                        [0.99, 1]])
+            sigma_1 = self.obs_noise * torch.tensor([[1, 0.99, 0.99],
+                                                     [0.99, 1, 0.99],
+                                                     [0.99, 0.99, 1]])
+            sigma_2 = self.obs_noise * torch.tensor([[1, 0.99],
+                                                     [0.99, 1]])
+            sigma_3 = self.obs_noise * torch.tensor([[1, 0.99],
+                                                     [0.99, 1]])
         else:
-            sigma_1 = torch.tensor([[1, 0.5, 0.2],
-                                    [0.5, 1, 0.5],
-                                    [0.2, 0.5, 1]])
-            sigma_2 = torch.tensor([[1, 0.3],
-                                    [0.3, 1]])
-            sigma_3 = torch.tensor([[1, 0.45],
-                                    [0.45, 1]])
+            sigma_1 = self.obs_noise * torch.tensor([[1, 0.5, 0.2],
+                                                     [0.5, 1, 0.5],
+                                                     [0.2, 0.5, 1]])
+            sigma_2 = self.obs_noise * torch.tensor([[1, 0.3],
+                                                     [0.3, 1]])
+            sigma_3 = self.obs_noise * torch.tensor([[1, 0.45],
+                                                     [0.45, 1]])
 
         Z_1 = MultivariateNormal(mu_1, sigma_1).sample((n_samples,))
 
@@ -145,8 +145,8 @@ class DataGen:
             mu_1 = torch.tensor([11., 23.])
             mu_2 = torch.tensor([31.])
 
-        sigma_1 = self.obs_noise*torch.tensor([[1, 0.99], [0.99, 1]])
-        sigma_2 = self.obs_noise*torch.tensor([[1.]])
+        sigma_1 = self.obs_noise * torch.tensor([[1, 0.99], [0.99, 1]])
+        sigma_2 = self.obs_noise * torch.tensor([[1.]])
 
         Z_1 = MultivariateNormal(mu_1, sigma_1).sample((n_samples,))
 
@@ -186,8 +186,8 @@ class DataGen:
             mu_1 = torch.tensor([11., 23.])
             mu_2 = torch.tensor([31., 41.])
 
-        sigma_1 = 0.1*torch.tensor([[1, 0.99], [0.99, 1]])
-        sigma_2 = 0.1*torch.tensor([[1, 0.99], [0.99, 1]])
+        sigma_1 = self.obs_noise * torch.tensor([[1, 0.99], [0.99, 1]])
+        sigma_2 = self.obs_noise * torch.tensor([[1, 0.99], [0.99, 1]])
 
         Z_1 = MultivariateNormal(mu_1, sigma_1).sample((n_samples,))
 
