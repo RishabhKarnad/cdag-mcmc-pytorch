@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.stats as stats
+import torch
 from scipy.special import comb
 from copy import deepcopy
 from tqdm import tqdm
@@ -14,6 +14,12 @@ MAX_PARENTS = 2
 
 N_WARMUP = 100
 N_SAMPLES = 500
+
+
+def safe_set(ns):
+    if ns.size == 1:
+        return {ns.item()}
+    return set(ns)
 
 
 class ClusteringProposalDistribution:
@@ -77,8 +83,8 @@ class ClusteringProposalDistribution:
                 neighbour[i].update(neighbour.pop(i+1))
             case ['split', i, c]:
                 i, c = int(i), int(c)
-                c_new = set(np.random.choice(
-                    np.array(sorted(neighbour[i])), (c,), replace=False).tolist())
+                ns = np.array(sorted(neighbour[i]))
+                c_new = safe_set(ns[torch.randperm(ns.size)[:c]])
                 neighbour[i] -= c_new
                 neighbour.insert(i + 1, c_new)
             case ['reverse', i]:
@@ -86,10 +92,10 @@ class ClusteringProposalDistribution:
                 neighbour[i], neighbour[i+1] = neighbour[i+1], neighbour[i]
             case ['exchange', i, c1, c2]:
                 i, c1, c2 = int(i), int(c1), int(c2)
-                c1_subset = set(np.random.choice(
-                    np.array(sorted(neighbour[i])), (c1,), replace=False).tolist())
-                c2_subset = set(np.random.choice(
-                    np.array(sorted(neighbour[i+1])), (c2,), replace=False).tolist())
+                ns1 = np.array(sorted(neighbour[i]))
+                c1_subset = safe_set(ns1[torch.randperm(ns1.size)[:c1]])
+                ns2 = np.array(sorted(neighbour[i+1]))
+                c2_subset = safe_set(ns2[torch.randperm(ns2.size)[:c2]])
                 neighbour[i] -= c1_subset
                 neighbour[i+1].update(c1_subset)
                 neighbour[i+1] -= c2_subset
@@ -98,8 +104,8 @@ class ClusteringProposalDistribution:
         return neighbour
 
     def sample(self):
-        j = np.random.choice(
-            np.arange(len(self.neighbours)), p=np.array(self.neighbour_counts)/np.sum(self.neighbour_counts))
+        p = torch.tensor(self.neighbour_counts) / np.sum(self.neighbour_counts)
+        j = torch.distributions.Categorical(probs=p).sample().item()
         return self.gen_neighbour(self.neighbours[j])
 
     def pdf(self, C_star):
@@ -122,8 +128,9 @@ class GraphProposalDistribution:
     def sample(self):
         G = deepcopy(self.G)
 
-        [i, j] = np.random.choice(np.arange(
-            self.n_nodes), (2,), replace=False)
+        ns = torch.randperm(self.n_nodes)
+        i = ns[0].item()
+        j = ns[1].item()
 
         if i > j:
             i, j = j, i
@@ -179,7 +186,7 @@ class CDAGSampler:
 
         self.samples = [initial_sample]
         self.G_C_proposed = []
-        self.U = stats.uniform(0, 1)
+        self.U = torch.distributions.Uniform(0, 1)
 
         self.data = data
         self.score = score
@@ -200,7 +207,7 @@ class CDAGSampler:
         while not done:
             C = np.zeros((self.n_nodes, n_clusters))
             for i in range(self.n_nodes):
-                j = np.random.choice(n_clusters)
+                j = torch.randperm(n_clusters)[0].item()
                 C[i, j] = 1
             if (np.sum(C, axis=0) > 0).all():
                 done = True
@@ -231,7 +238,7 @@ class CDAGSampler:
         return self.scores[-(self.n_samples+1):-1]
 
     def step(self, cb=None):
-        alpha = self.U.rvs()
+        alpha = self.U.sample().item()
 
         if alpha < 0.01:
             # Small probability of staying in same state to make Markov Chain ergodic
@@ -251,7 +258,7 @@ class CDAGSampler:
             if cb is not None:
                 cb((C_star, E_C_star))
 
-            u = self.U.rvs()
+            u = self.U.sample().item()
             a = self.log_prob_accept((C_star, E_C_prev))
             if np.log(u) < a:
                 C_new = C_star
