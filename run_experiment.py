@@ -55,7 +55,7 @@ def parse_args():
     return args
 
 
-def evaluate_samples(*, C_true, G_true, samples, scores, theta_true, data, filepath):
+def evaluate_samples(*, C_true, G_true, samples, scores, theta, theta_true, data, filepath):
     C_samples = list(
         map(lambda x: clustering_to_matrix(x[0]), samples))
 
@@ -74,12 +74,12 @@ def evaluate_samples(*, C_true, G_true, samples, scores, theta_true, data, filep
         (C_true, G_true), samples)
     logging.info(f'CPDAG E-SHD: {shd_cpdag_mean}+-{shd_cpdag_stddev}')
 
-    # nll_mean, nll_stddev = expected_nll(data, samples, theta)
-    # logging.info(f'NLL: {nll_mean}+-{nll_stddev}')
+    nll_mean, nll_stddev = expected_nll(data, samples, theta)
+    logging.info(f'NLL: {nll_mean}+-{nll_stddev}')
 
-    # mse_theta_mean, mse_theta_stddev = expected_mse_theta(
-    #     samples, theta, theta_true)
-    # logging.info(f'MSE (Theta): {mse_theta_mean}+-{mse_theta_stddev}')
+    mse_theta_mean, mse_theta_stddev = expected_mse_theta(
+        samples, theta, theta_true)
+    logging.info(f'MSE (Theta): {mse_theta_mean}+-{mse_theta_stddev}')
 
     # Compute metrics for the CDAG with best score
     logging.info('Best DAG metrics:')
@@ -102,11 +102,11 @@ def evaluate_samples(*, C_true, G_true, samples, scores, theta_true, data, filep
     shd_cpdag_best = shd_expanded_mixed_graph((C_true, G_true), best_cdag)
     logging.info(f'\tCPDAG SHD: {shd_cpdag_best}')
 
-    # nll_best = nll(data, C_best, G_best, theta)
-    # logging.info(f'\tNLL: {nll_best}')
+    nll_best = nll(data, C_best, G_best, theta)
+    logging.info(f'\tNLL: {nll_best}')
 
-    # mse_theta_best = mse_theta(best_cdag, theta, theta_true)
-    # logging.info(f'\tMSE (Theta): {mse_theta_best}')
+    mse_theta_best = mse_theta(best_cdag, theta, theta_true)
+    logging.info(f'\tMSE (Theta): {mse_theta_best}')
 
     # Compute metrics for most frequently sampled CDAG
     logging.info('Most frequent DAG metrics:')
@@ -137,14 +137,14 @@ def evaluate_samples(*, C_true, G_true, samples, scores, theta_true, data, filep
     shd_cpdag_mode = shd_expanded_mixed_graph((C_true, G_true), mode_dag)
     logging.info(f'\tCPDAG SHD: {shd_cpdag_mode}')
 
-    # nll_mode = nll(data, C_mode, G_mode, theta)
-    # logging.info(f'\tNLL: {nll_mode}')
+    nll_mode = nll(data, C_mode, G_mode, theta)
+    logging.info(f'\tNLL: {nll_mode}')
 
-    # mse_theta_mode = mse_theta(mode_dag, theta, theta_true)
-    # logging.info(f'\tMSE (Theta): {mse_theta_mode}')
+    mse_theta_mode = mse_theta(mode_dag, theta, theta_true)
+    logging.info(f'\tMSE (Theta): {mse_theta_mode}')
 
 
-def train(data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_clusters):
+def train(model, data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_clusters):
     loss_trace = []
     samples = []
     scores = []
@@ -157,11 +157,6 @@ def train(data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_c
         dataset, batch_size=64, shuffle=True)
 
     initial_cdag_sample = None
-
-    model = CDAGJointDistribution(n,
-                                  min_clusters=min_clusters,
-                                  mean_clusters=max_clusters,
-                                  max_clusters=max_clusters)
 
     def score(C, E_C):
         return model.logpmf(C, E_C, data, batch=True)
@@ -201,6 +196,8 @@ def train(data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_c
         ).to('cuda')
 
         for _ in tqdm(range(args.max_mle_iters), 'Estimating theta'):
+            running_loss = 0
+            batches = 0
             for i, X in enumerate(dataloader):
                 X = X.to('cuda')
                 optimizer.zero_grad()
@@ -208,7 +205,9 @@ def train(data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_c
                                               (None, 0, 0), 0)(X, Cs, E_Cs))
                 loss.backward()
                 optimizer.step()
-                loss_trace.append(loss.item())
+                running_loss += loss.item()
+                batches += 1
+            loss_trace.append(running_loss / batches)
 
         samples.append(samples_i)
         scores.append(scores_i)
@@ -261,9 +260,12 @@ def run(args):
         logging.info(theta_true)
         logging.info('True covariance')
         logging.info(Cov_true)
-        # logging.info('Ground truth NLL')
-        # logging.info(-ClusterLinearGaussianNetwork(n)
-        #              .logpmf(data, clustering_to_matrix(grouping), group_dag))
+        clgn = ClusterLinearGaussianNetwork(n)
+        clgn.fc.weight.data = theta_true.T
+        clgn.fc.bias.data = torch.zeros(n)
+        logging.info('Ground truth NLL')
+        logging.info(clgn
+                     .logpmf(data, clustering_to_matrix(grouping), group_dag))
     logging.info(
         '============================================================')
 
@@ -279,19 +281,27 @@ def run(args):
         logging.basicConfig(filename=log_filename, force=True)
         logging.info(f'CHAIN {chain_id}\n\n')
 
-        cdag_samples, cdag_scores, loss_trace, G_C_proposals = train(data,
+        model = CDAGJointDistribution(n,
+                                      min_clusters=args.min_clusters,
+                                      mean_clusters=args.max_clusters,
+                                      max_clusters=args.max_clusters)
+
+        cdag_samples, cdag_scores, loss_trace, G_C_proposals = train(model,
+                                                                     data,
                                                                      args.max_em_iters,
                                                                      args.n_mcmc_samples,
                                                                      args.n_mcmc_warmup,
                                                                      args.min_clusters,
                                                                      args.max_clusters)
 
+        theta = model.likelihood.fc.weight.data.detach().to('cpu')
+
         if theta_true is not None:
             evaluate_samples(C_true=grouping,
                              G_true=group_dag,
                              samples=cdag_samples[-1],
                              scores=cdag_scores[-1],
-                             #  theta=theta,
+                             theta=theta,
                              theta_true=theta_true,
                              data=data,
                              filepath=args.output_path)
@@ -311,21 +321,22 @@ def run(args):
         for i, graphs in enumerate(cdag_samples):
             visualize_graphs(graphs, f'{args.output_path}/em_iter_{i}.png')
 
-        # if theta_true is not None:
-        #     score = BayesianCDAGScore(data=data,
-        #                               min_clusters=args.min_clusters,
-        #                               mean_clusters=args.max_clusters,
-        #                               max_clusters=args.max_clusters)
+        if theta_true is not None:
+            score_model = CDAGJointDistribution(n,
+                                                min_clusters=args.min_clusters,
+                                                mean_clusters=args.max_clusters,
+                                                max_clusters=args.max_clusters)
+            score_model.likelihood.fc.weight.data = theta_true.T
+            score_model.likelihood.fc.bias.data = torch.zeros(n)
+            opt_score = score_model.logpmf(
+                grouping, group_dag, data, batch=True).item()
+        else:
+            opt_score = None
 
-        #     opt_cdag = (grouping, group_dag)
-        #     opt_score = score(opt_cdag, theta=theta_true*g_true)
-        # else:
-        #     opt_score = None
-
-        # plot_graph_scores(cdag_scores, opt_score, args.output_path)
+        plot_graph_scores(cdag_scores, opt_score, args.output_path)
         plot_graph_scores(cdag_scores, 0, args.output_path)
 
-        # np.save(f'{args.output_path}/theta_estimated.npy', theta)
+        np.save(f'{args.output_path}/theta_estimated.npy', theta)
 
         np.save(f'{args.output_path}/loss_trace.npy', loss_trace)
 

@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 import networkx as nx
 from sklearn.metrics.cluster import rand_score, mutual_info_score
@@ -164,7 +165,9 @@ Distribution metrics
 def nll(data, C, G, theta):
     n, n = theta.shape
     clgn = ClusterLinearGaussianNetwork(n)
-    return -clgn.logpmf(data, theta, clustering_to_matrix(C), G)
+    clgn.fc.weight.data = theta.to('cpu')
+    clgn.fc.bias.data = torch.zeros(n)
+    return -clgn.logpmf(data, clustering_to_matrix(C), G).detach()
 
 
 def expected_nll(data, samples, theta):
@@ -177,7 +180,7 @@ def mse_theta(G_C, theta, theta_true):
     C = clustering_to_matrix(C)
     G_expand = C@G@C.T
     theta_masked = G_expand*theta
-    return np.mean((theta_masked - theta_true)**2)
+    return ((theta_masked - theta_true)**2).mean().item()
 
 
 def expected_mse_theta(samples, theta, theta_true):
