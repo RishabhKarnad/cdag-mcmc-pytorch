@@ -162,16 +162,12 @@ Distribution metrics
 """
 
 
-def nll(data, C, G, theta):
-    n, n = theta.shape
-    clgn = ClusterLinearGaussianNetwork(n)
-    clgn.fc.weight.data = theta.to('cpu')
-    clgn.fc.bias.data = torch.zeros(n)
-    return -clgn.logpmf(data, clustering_to_matrix(C), G).detach()
+def nll(data, C, G, model):
+    return -model.likelihood.logpmf(data, clustering_to_matrix(C), G).detach()
 
 
-def expected_nll(data, samples, theta):
-    nlls = [nll(data, C, G, theta) for (C, G) in samples]
+def expected_nll(data, samples, model):
+    nlls = [nll(data, C, G, model) for (C, G) in samples]
     return np.mean(nlls), np.std(nlls)
 
 
