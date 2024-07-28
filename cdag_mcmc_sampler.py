@@ -37,9 +37,9 @@ class ClusteringProposalDistribution:
         self.populate_neighbours()
 
     def populate_neighbours(self):
-        # For convenience, popped later
-        self.neighbours.append(None)
-        self.neighbour_counts.append(0)
+        # No move
+        self.neighbours.append(f'no_move')
+        self.neighbour_counts.append(1)
 
         # Merges
         if self.max_clusters > self.k:
@@ -70,14 +70,12 @@ class ClusteringProposalDistribution:
 
         self.total_neighbours = self.neighbour_counts[-1]
 
-        # Remove the placeholders added in first line of this method
-        self.neighbours.pop(0)
-        self.neighbour_counts.pop(0)
-
     def gen_neighbour(self, spec):
         neighbour = deepcopy(self.C)
 
         match spec.split('-'):
+            case ['no_move']:
+                pass
             case ['merge', i]:
                 i = int(i)
                 neighbour[i].update(neighbour.pop(i+1))
@@ -126,7 +124,19 @@ class GraphProposalDistribution:
         self.total_neighbours = m*(m-1) / 2
 
     def sample(self):
+        """
+        Sample uniformly from the neighbourhood of graphs with 1 edge added,
+        1 edge removed and the current graph
+        """
+
         G = deepcopy(self.G)
+
+        n_edges = (self.n_nodes * (self.n_nodes-1)) / 2
+        logits = torch.tensor([0., np.log(n_edges)])
+        move = torch.distributions.Categorical(logits=logits)
+
+        if not move:
+            return G
 
         ns = torch.randperm(self.n_nodes)
         i = ns[0].item()
