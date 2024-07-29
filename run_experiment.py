@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch.optim import Adam
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
 import matplotlib.pyplot as plt
 import torch.utils
 import torch.utils.data
@@ -47,6 +47,9 @@ def parse_args():
 
     parser.add_argument('--min_clusters', type=int, default=None)
     parser.add_argument('--max_clusters', type=int, default=None)
+
+    parser.add_argument('--optimize_covariance', action=BooleanOptionalAction)
+    parser.add_argument('--full_covariance', action=BooleanOptionalAction)
 
     parser.add_argument('--output_path', type=str)
 
@@ -282,6 +285,7 @@ def run(args):
         logging.info(f'CHAIN {chain_id}\n\n')
 
         model = CDAGJointDistribution(n,
+                                      optimize_cov=args.optimize_covariance,
                                       min_clusters=args.min_clusters,
                                       mean_clusters=args.max_clusters,
                                       max_clusters=args.max_clusters)
@@ -298,6 +302,7 @@ def run(args):
         torch.save(model_state_dict, f'{args.output_path}/model.pt')
 
         score_model = CDAGJointDistribution(n,
+                                            optimize_cov=args.optimize_covariance,
                                             min_clusters=args.min_clusters,
                                             mean_clusters=args.max_clusters,
                                             max_clusters=args.max_clusters)

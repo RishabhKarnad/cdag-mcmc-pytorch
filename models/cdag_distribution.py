@@ -14,6 +14,7 @@ class CDAGJointDistribution(torch.nn.Module):
                  min_clusters,
                  mean_clusters,
                  max_clusters,
+                 optimize_cov,
                  cluster_prior=ClusteringDistribution,
                  graph_prior=SparseDAGDistribution,
                  likelihood=ClusterLinearGaussianNetwork):
@@ -24,7 +25,7 @@ class CDAGJointDistribution(torch.nn.Module):
         self.max_clusters = max_clusters
         self.cluster_prior = cluster_prior(n_vars, max_clusters)
         self.graph_prior = graph_prior(n_vars)
-        self.likelihood = likelihood(n_vars)
+        self.likelihood = likelihood(n_vars, optimize_cov=optimize_cov)
 
     def logpmf(self, C, G, X, batch=False):
         k = len(C)
