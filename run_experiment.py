@@ -48,8 +48,10 @@ def parse_args():
     parser.add_argument('--min_clusters', type=int, default=None)
     parser.add_argument('--max_clusters', type=int, default=None)
 
-    parser.add_argument('--optimize_covariance', action=BooleanOptionalAction)
-    parser.add_argument('--full_covariance', action=BooleanOptionalAction)
+    parser.add_argument('--optimize_covariance',
+                        action=BooleanOptionalAction, default=False)
+    parser.add_argument('--full_covariance',
+                        action=BooleanOptionalAction, default=False)
 
     parser.add_argument('--output_path', type=str)
 
@@ -286,6 +288,7 @@ def run(args):
 
         model = CDAGJointDistribution(n,
                                       optimize_cov=args.optimize_covariance,
+                                      full_covariance=args.full_covariance,
                                       min_clusters=args.min_clusters,
                                       mean_clusters=args.max_clusters,
                                       max_clusters=args.max_clusters)
@@ -303,6 +306,7 @@ def run(args):
 
         score_model = CDAGJointDistribution(n,
                                             optimize_cov=args.optimize_covariance,
+                                            full_covariance=args.full_covariance,
                                             min_clusters=args.min_clusters,
                                             mean_clusters=args.max_clusters,
                                             max_clusters=args.max_clusters)

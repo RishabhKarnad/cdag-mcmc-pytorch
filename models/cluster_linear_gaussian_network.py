@@ -29,19 +29,22 @@ class ClusterLinearGaussianNetwork(torch.nn.Module):
 
 
 class ClusterLinearGaussianNetworkFullCov(torch.nn.Module):
-    def __init__(self, n_vars, *, bias=True, Cov=None, optimize_cov=False):
+    def __init__(self, n_vars, *, bias=True):
         super().__init__()
         self.n_vars = n_vars
         self.fc = MaskedLinear(n_vars, n_vars, bias)
-        Cov = Cov or torch.eye(n_vars)
-        self.Cov = torch.nn.Parameter(Cov, requires_grad=optimize_cov)
+        self.L = torch.nn.Parameter(torch.randn((n_vars, n_vars)))
+        self.mask = torch.nn.Parameter(torch.tril(
+            torch.ones((n_vars, n_vars))), requires_grad=False)
 
     def logpmf(self, X, C, G):
         G_expand = C@G@C.T
         mean_expected = self.fc(X, G_expand)
+        L = self.L * self.mask
+        Cov = L@L.T
         return (mv_gauss_log_prob(X.unsqueeze(dim=1),
                                   mean_expected,
-                                  covariance_matrix=self.Cov)
+                                  covariance_matrix=Cov)
                 .mean())
 
     def sample(self, n_samples=1):
