@@ -36,6 +36,9 @@ def parse_args():
         'housing',
     ])
 
+    parser.add_argument('--nonzero_centered',
+                        action=BooleanOptionalAction, default=False)
+
     parser.add_argument('--n_data_samples', type=int)
 
     parser.add_argument('--n_mcmc_samples', type=int, default=5000)
@@ -56,6 +59,8 @@ def parse_args():
     parser.add_argument('--output_path', type=str)
 
     args = parser.parse_args()
+
+    args.zero_centered = not args.nonzero_centered
 
     return args
 
@@ -224,15 +229,19 @@ def gen_data(args):
     datagen = DataGen(0.1)
     if args.dataset == '7var':
         return datagen.generate_group_scm_data(
-            n_samples=args.n_data_samples, confounded=True)
+            n_samples=args.n_data_samples,
+            confounded=True,
+            zero_centered=args.zero_centered)
     elif args.dataset == 'full7var':
         return datagen.generate_scm_data(n_samples=args.n_data_samples)
     elif args.dataset == '3var':
         return datagen.generate_group_scm_data_small_dag(
-            n_samples=args.n_data_samples)
+            n_samples=args.n_data_samples,
+            zero_centered=args.zero_centered)
     elif args.dataset == '4var':
         return datagen.generate_group_scm_data_small_dag_4vars(
-            n_samples=args.n_data_samples)
+            n_samples=args.n_data_samples,
+            zero_centered=args.zero_centered)
     elif args.dataset == 'sachs':
         return datagen.get_sachs_data()
     elif args.dataset == 'housing':

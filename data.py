@@ -84,8 +84,8 @@ class DataGen:
             mu_2 = torch.zeros(ks[1])
             mu_3 = torch.zeros(ks[2])
         else:
-            mu_1 = torch.tensor([1, 2, -1])
-            mu_2 = torch.tensor([-2, 3])
+            mu_1 = torch.tensor([1.0, 2.0, -1.0])
+            mu_2 = torch.tensor([-2.0, 3.0])
             mu_3 = torch.tensor([3.2, 1.5])
 
         if confounded:
