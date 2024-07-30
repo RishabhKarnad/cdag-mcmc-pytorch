@@ -1,10 +1,7 @@
 import numpy as np
-import torch
 
-import networkx as nx
 from sklearn.metrics.cluster import rand_score, mutual_info_score
 
-from models.cluster_linear_gaussian_network import ClusterLinearGaussianNetwork
 from utils.cdag import clustering_to_matrix
 
 

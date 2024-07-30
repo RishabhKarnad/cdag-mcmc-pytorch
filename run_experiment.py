@@ -13,7 +13,7 @@ import logging
 from cdag_mcmc_sampler import CDAGSampler
 from data import DataGen
 from models import CDAGJointDistribution, ClusterLinearGaussianNetwork
-from utils.metrics import nll, expected_nll, mse_theta, expected_mse_theta, rand_index, expected_rand_index, mutual_information_score, expected_mutual_information_score, shd_expanded_graph, expected_shd, shd_expanded_mixed_graph, expected_cpdag_shd
+from utils.metrics import nll, expected_nll, rand_index, expected_rand_index, mutual_information_score, expected_mutual_information_score, shd_expanded_graph, expected_shd, shd_expanded_mixed_graph, expected_cpdag_shd
 from utils.cdag import clustering_to_matrix, get_graphs_by_count
 from utils.visualization import visualize_graphs, plot_graph_scores
 from utils.sys import initialize_logger

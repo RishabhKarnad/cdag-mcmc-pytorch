@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import igraph as ig
 import scipy
 from functools import reduce
-import pandas as pd
 
 from utils.cdag import clustering_to_matrix
 
