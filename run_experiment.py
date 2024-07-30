@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch.optim import Adam
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
 import matplotlib.pyplot as plt
 import torch.utils
 import torch.utils.data
@@ -48,6 +48,11 @@ def parse_args():
     parser.add_argument('--min_clusters', type=int, default=None)
     parser.add_argument('--max_clusters', type=int, default=None)
 
+    parser.add_argument('--optimize_covariance',
+                        action=BooleanOptionalAction, default=False)
+    parser.add_argument('--full_covariance',
+                        action=BooleanOptionalAction, default=False)
+
     parser.add_argument('--output_path', type=str)
 
     args = parser.parse_args()
@@ -55,7 +60,7 @@ def parse_args():
     return args
 
 
-def evaluate_samples(*, C_true, G_true, samples, scores, theta, theta_true, data, filepath):
+def evaluate_samples(*, C_true, G_true, samples, scores, model, data, filepath):
     C_samples = list(
         map(lambda x: clustering_to_matrix(x[0]), samples))
 
@@ -74,12 +79,12 @@ def evaluate_samples(*, C_true, G_true, samples, scores, theta, theta_true, data
         (C_true, G_true), samples)
     logging.info(f'CPDAG E-SHD: {shd_cpdag_mean}+-{shd_cpdag_stddev}')
 
-    nll_mean, nll_stddev = expected_nll(data, samples, theta)
+    nll_mean, nll_stddev = expected_nll(data, samples, model)
     logging.info(f'NLL: {nll_mean}+-{nll_stddev}')
 
-    mse_theta_mean, mse_theta_stddev = expected_mse_theta(
-        samples, theta, theta_true)
-    logging.info(f'MSE (Theta): {mse_theta_mean}+-{mse_theta_stddev}')
+    # mse_theta_mean, mse_theta_stddev = expected_mse_theta(
+    #     samples, likelihood_params, theta_true)
+    # logging.info(f'MSE (Theta): {mse_theta_mean}+-{mse_theta_stddev}')
 
     # Compute metrics for the CDAG with best score
     logging.info('Best DAG metrics:')
@@ -102,11 +107,11 @@ def evaluate_samples(*, C_true, G_true, samples, scores, theta, theta_true, data
     shd_cpdag_best = shd_expanded_mixed_graph((C_true, G_true), best_cdag)
     logging.info(f'\tCPDAG SHD: {shd_cpdag_best}')
 
-    nll_best = nll(data, C_best, G_best, theta)
+    nll_best = nll(data, C_best, G_best, model)
     logging.info(f'\tNLL: {nll_best}')
 
-    mse_theta_best = mse_theta(best_cdag, theta, theta_true)
-    logging.info(f'\tMSE (Theta): {mse_theta_best}')
+    # mse_theta_best = mse_theta(best_cdag, likelihood_params, theta_true)
+    # logging.info(f'\tMSE (Theta): {mse_theta_best}')
 
     # Compute metrics for most frequently sampled CDAG
     logging.info('Most frequent DAG metrics:')
@@ -137,11 +142,11 @@ def evaluate_samples(*, C_true, G_true, samples, scores, theta, theta_true, data
     shd_cpdag_mode = shd_expanded_mixed_graph((C_true, G_true), mode_dag)
     logging.info(f'\tCPDAG SHD: {shd_cpdag_mode}')
 
-    nll_mode = nll(data, C_mode, G_mode, theta)
+    nll_mode = nll(data, C_mode, G_mode, model)
     logging.info(f'\tNLL: {nll_mode}')
 
-    mse_theta_mode = mse_theta(mode_dag, theta, theta_true)
-    logging.info(f'\tMSE (Theta): {mse_theta_mode}')
+    # mse_theta_mode = mse_theta(mode_dag, likelihood_params, theta_true)
+    # logging.info(f'\tMSE (Theta): {mse_theta_mode}')
 
 
 def train(model, data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_clusters):
@@ -282,6 +287,8 @@ def run(args):
         logging.info(f'CHAIN {chain_id}\n\n')
 
         model = CDAGJointDistribution(n,
+                                      optimize_cov=args.optimize_covariance,
+                                      full_covariance=args.full_covariance,
                                       min_clusters=args.min_clusters,
                                       mean_clusters=args.max_clusters,
                                       max_clusters=args.max_clusters)
@@ -294,15 +301,23 @@ def run(args):
                                                                      args.min_clusters,
                                                                      args.max_clusters)
 
-        theta = model.likelihood.fc.weight.data.detach().to('cpu')
+        model_state_dict = model.state_dict()
+        torch.save(model_state_dict, f'{args.output_path}/model.pt')
+
+        score_model = CDAGJointDistribution(n,
+                                            optimize_cov=args.optimize_covariance,
+                                            full_covariance=args.full_covariance,
+                                            min_clusters=args.min_clusters,
+                                            mean_clusters=args.max_clusters,
+                                            max_clusters=args.max_clusters)
+        score_model.load_state_dict(model_state_dict)
 
         if theta_true is not None:
             evaluate_samples(C_true=grouping,
                              G_true=group_dag,
                              samples=cdag_samples[-1],
                              scores=cdag_scores[-1],
-                             theta=theta,
-                             theta_true=theta_true,
+                             model=score_model,
                              data=data,
                              filepath=args.output_path)
 
@@ -322,12 +337,6 @@ def run(args):
             visualize_graphs(graphs, f'{args.output_path}/em_iter_{i}.png')
 
         if theta_true is not None:
-            score_model = CDAGJointDistribution(n,
-                                                min_clusters=args.min_clusters,
-                                                mean_clusters=args.max_clusters,
-                                                max_clusters=args.max_clusters)
-            score_model.likelihood.fc.weight.data = theta_true.T
-            score_model.likelihood.fc.bias.data = torch.zeros(n)
             opt_score = score_model.logpmf(
                 grouping, group_dag, data, batch=True).item()
         else:
@@ -335,8 +344,6 @@ def run(args):
 
         plot_graph_scores(cdag_scores, opt_score, args.output_path)
         plot_graph_scores(cdag_scores, 0, args.output_path)
-
-        np.save(f'{args.output_path}/theta_estimated.npy', theta)
 
         np.save(f'{args.output_path}/loss_trace.npy', loss_trace)
 
