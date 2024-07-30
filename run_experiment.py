@@ -10,7 +10,7 @@ from tqdm import tqdm
 import os
 import logging
 
-from cdag_mcmc_sampler import CDAGSampler
+from samplers.cdag_mcmc_sampler import CDAGSampler
 from data import DataGen
 from models import CDAGJointDistribution, ClusterLinearGaussianNetwork
 from utils.metrics import nll, expected_nll, rand_index, expected_rand_index, mutual_information_score, expected_mutual_information_score, shd_expanded_graph, expected_shd, shd_expanded_mixed_graph, expected_cpdag_shd
