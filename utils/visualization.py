@@ -4,12 +4,11 @@ import igraph as ig
 from itertools import chain
 
 
-from utils.cdag import stringify_cdag, get_graphs_by_count
+from utils.cdag import get_graphs_by_count
 
 
 def plot_graph(g, target):
     c = g[0]
-    graphstring = stringify_cdag(g)
     g = ig.Graph.Adjacency(g[1].tolist())
     ig.plot(g,
             target,
