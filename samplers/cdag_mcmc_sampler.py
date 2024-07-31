@@ -269,7 +269,7 @@ class CDAGSampler:
                 cb((C_star, E_C_star))
 
             u = self.U.sample().item()
-            a = self.log_prob_accept((C_star, E_C_prev))
+            a = self.log_prob_accept((C_star, E_C_star))
             if np.log(u) < a:
                 C_new = C_star
                 E_C_new = E_C_star
