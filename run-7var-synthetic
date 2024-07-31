@@ -1,0 +1,78 @@
+#! /bin/bash
+
+DIR=$(date +"%Y-%m-%d-%T")
+
+CUDA_VISIBLE_DEVICES='0'
+
+mkdir -p results/$DIR/bayesian/7var/fixedcov-zeromean
+mkdir -p results/$DIR/bayesian/7var/fixedcov-nonzeromean
+mkdir -p results/$DIR/bayesian/7var/fullcov-zeromean
+mkdir -p results/$DIR/bayesian/7var/fullcov-nonzeromean
+
+N_DATA_SAMPLES=1000
+N_MCMC_SAMPLES=2000
+N_MCMC_WARMUP=500
+MAX_EM_ITERS=10
+MAX_MLE_ITERS=1000
+NUM_CHAINS=8
+MIN_CLUSTERS=3
+MAX_CLUSTERS=3
+
+
+# 3 variable zero-mean noise
+python run_experiment.py \
+    --n_data_samples $N_DATA_SAMPLES \
+    --n_mcmc_samples $N_MCMC_SAMPLES \
+    --n_mcmc_warmup $N_MCMC_WARMUP \
+    --max_em_iters $MAX_EM_ITERS \
+    --max_mle_iters $MAX_MLE_ITERS \
+    --min_clusters $MIN_CLUSTERS \
+    --max_clusters $MAX_CLUSTERS \
+    --num_chains $NUM_CHAINS \
+    --dataset '7var' \
+    --output_path results/$DIR/bayesian/7var/fixedcov-zeromean
+
+# 3 variable nonzero-mean noise
+python run_experiment.py \
+    --n_data_samples $N_DATA_SAMPLES \
+    --n_mcmc_samples $N_MCMC_SAMPLES \
+    --n_mcmc_warmup $N_MCMC_WARMUP \
+    --max_em_iters $MAX_EM_ITERS \
+    --max_mle_iters $MAX_MLE_ITERS \
+    --min_clusters $MIN_CLUSTERS \
+    --max_clusters $MAX_CLUSTERS \
+    --num_chains $NUM_CHAINS \
+    --dataset '7var' \
+    --nonzero_centered \
+    --output_path results/$DIR/bayesian/7var/fixedcov-nonzeromean
+
+# 3 variable full covariance optimization zero-mean noise
+python run_experiment.py \
+    --n_data_samples $N_DATA_SAMPLES \
+    --n_mcmc_samples $N_MCMC_SAMPLES \
+    --n_mcmc_warmup $N_MCMC_WARMUP \
+    --max_em_iters $MAX_EM_ITERS \
+    --max_mle_iters $MAX_MLE_ITERS \
+    --min_clusters $MIN_CLUSTERS \
+    --max_clusters $MAX_CLUSTERS \
+    --num_chains $NUM_CHAINS \
+    --optimize_covariance \
+    --full_covariance \
+    --dataset '7var' \
+    --output_path results/$DIR/bayesian/7var/fullcov-zeromean
+
+# 3 variable full covariance optimization nonzero-mean noise
+python run_experiment.py \
+    --n_data_samples $N_DATA_SAMPLES \
+    --n_mcmc_samples $N_MCMC_SAMPLES \
+    --n_mcmc_warmup $N_MCMC_WARMUP \
+    --max_em_iters $MAX_EM_ITERS \
+    --max_mle_iters $MAX_MLE_ITERS \
+    --min_clusters $MIN_CLUSTERS \
+    --max_clusters $MAX_CLUSTERS \
+    --num_chains $NUM_CHAINS \
+    --optimize_covariance \
+    --full_covariance \
+    --dataset '7var' \
+    --nonzero_centered \
+    --output_path results/$DIR/bayesian/7var/fullcov-nonzeromean
