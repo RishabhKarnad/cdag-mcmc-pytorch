@@ -68,7 +68,7 @@ class ClusteringProposalDistribution:
                     self.neighbour_counts.append(
                         (comb(len(self.C[i]), c1) * comb(len(self.C[i+1]), c2)))
 
-        self.total_neighbours = self.neighbour_counts[-1]
+        self.total_neighbours = np.sum(self.neighbour_counts)
 
     def gen_neighbour(self, spec):
         neighbour = deepcopy(self.C)
@@ -121,7 +121,7 @@ class GraphProposalDistribution:
         m, m = G.shape
         self.n_nodes = m
 
-        self.total_neighbours = m*(m-1) / 2
+        self.total_neighbours = m*(m-1) / 2 + 1
 
     def sample(self):
         """

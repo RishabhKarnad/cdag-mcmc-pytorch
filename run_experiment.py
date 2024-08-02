@@ -207,7 +207,6 @@ def train(model, data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters
 
         for _ in tqdm(range(args.max_mle_iters), 'Estimating theta'):
             running_loss = 0
-            batches = 0
             for i, X in enumerate(dataloader):
                 X = X.to('cuda')
                 optimizer.zero_grad()
@@ -215,9 +214,8 @@ def train(model, data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters
                                               (None, 0, 0), 0)(X, Cs, E_Cs))
                 loss.backward()
                 optimizer.step()
-                running_loss += loss.item()
-                batches += 1
-            loss_trace.append(running_loss / batches)
+                running_loss += (loss.item() * X.shape[0])
+            loss_trace.append(running_loss / len(dataset))
 
         samples.append(samples_i)
         scores.append(scores_i)

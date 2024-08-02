@@ -42,7 +42,8 @@ class CDAGJointDistribution(torch.nn.Module):
             dataloader = torch.utils.data.DataLoader(
                 dataset, batch_size=64, shuffle=True)
             for _, X_i in enumerate(dataloader):
-                p_d += self.likelihood.logpmf(X_i, C_mat, G)
+                p_d += (self.likelihood.logpmf(X_i, C_mat, G) * X_i.shape[0])
+            p_d /= len(dataset)
         else:
             p_d = self.likelihood.logpmf(X, C_mat, G)
 

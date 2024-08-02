@@ -10,7 +10,7 @@ class ClusteringDistribution(torch.nn.Module):
         self.lambda_s = lambda_s
 
     def logpmf(self, C):
-        return self.lambda_s * torch.prod(torch.tanh(self.alpha * torch.sum(C, axis=0)))
+        return -self.lambda_s * torch.prod(torch.tanh(self.alpha * torch.sum(C, axis=0)))
 
     def sample(self, n_samples=1):
         raise NotImplementedError
