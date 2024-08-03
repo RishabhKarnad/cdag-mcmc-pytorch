@@ -6,4 +6,4 @@ class MaskedLinear(torch.nn.Linear):
         super().__init__(indim, outdim, bias)
 
     def forward(self, x, mask):
-        return torch.nn.functional.linear(x, self.weight * mask, self.bias)
+        return torch.nn.functional.linear(x, self.weight * mask.T, self.bias)

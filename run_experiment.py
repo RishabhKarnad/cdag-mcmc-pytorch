@@ -205,7 +205,7 @@ def train(model, data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters
             list(map(lambda G_C: (zero_pad(G_C[1], k=k_max)), samples_i))
         ).to('cuda')
 
-        for _ in tqdm(range(args.max_mle_iters), 'Estimating theta'):
+        for _ in tqdm(range(args.max_mle_iters), 'Estimating parameters'):
             running_loss = 0
             for i, X in enumerate(dataloader):
                 X = X.to('cuda')

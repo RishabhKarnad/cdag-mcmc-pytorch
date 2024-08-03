@@ -19,7 +19,7 @@ class ClusterLinearGaussianNetwork(torch.nn.Module):
         G_expand = C@G@C.T
         mean_expected = self.fc(X, G_expand)
         Cov = get_covariance_for_clustering(C, self.sigma, self.rho)
-        return (mv_gauss_log_prob(X.unsqueeze(dim=1),
+        return (mv_gauss_log_prob(X,
                                   mean_expected,
                                   covariance_matrix=Cov)
                 .mean())
