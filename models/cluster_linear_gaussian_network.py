@@ -42,7 +42,7 @@ class ClusterLinearGaussianNetworkFullCov(torch.nn.Module):
         mean_expected = self.fc(X, G_expand)
         L = self.L * self.mask
         Cov = L@L.T
-        return (mv_gauss_log_prob(X.unsqueeze(dim=1),
+        return (mv_gauss_log_prob(X,
                                   mean_expected,
                                   covariance_matrix=Cov)
                 .mean())
