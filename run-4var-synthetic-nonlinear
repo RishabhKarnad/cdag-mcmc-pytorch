@@ -4,10 +4,10 @@ DIR=$(date +"%Y-%m-%d-%T")
 
 CUDA_VISIBLE_DEVICES='0'
 
-mkdir -p results/$DIR/bayesian/4var-nonlinear/fixedcov-zeromean
-mkdir -p results/$DIR/bayesian/4var-nonlinear/fixedcov-nonzeromean
-mkdir -p results/$DIR/bayesian/4var-nonlinear/fullcov-zeromean
-mkdir -p results/$DIR/bayesian/4var-nonlinear/fullcov-nonzeromean
+mkdir -p results/$DIR/bayesian/4var-nonlinear/fixedcov-zeromean-uniform
+mkdir -p results/$DIR/bayesian/4var-nonlinear/fixedcov-nonzeromean-uniform
+mkdir -p results/$DIR/bayesian/4var-nonlinear/fullcov-zeromean-uniform
+mkdir -p results/$DIR/bayesian/4var-nonlinear/fullcov-nonzeromean-uniform
 
 N_DATA_SAMPLES=1000
 N_MCMC_SAMPLES=1000
@@ -31,7 +31,8 @@ python run_experiment.py \
     --num_chains $NUM_CHAINS \
     --dataset '4var-nonlinear' \
     --nonlinear \
-    --output_path results/$DIR/bayesian/4var-nonlinear/fixedcov-zeromean
+    --proposal_type 'uniform' \
+    --output_path results/$DIR/bayesian/4var-nonlinear/fixedcov-zeromean-uniform
 
 # 4 variable nonlinear nonzero-mean noise
 python run_experiment.py \
@@ -46,7 +47,8 @@ python run_experiment.py \
     --dataset '4var-nonlinear' \
     --nonlinear \
     --nonzero_centered \
-    --output_path results/$DIR/bayesian/4var-nonlinear/fixedcov-nonzeromean
+    --proposal_type 'uniform' \
+    --output_path results/$DIR/bayesian/4var-nonlinear/fixedcov-nonzeromean-uniform
 
 # 4 variable nonlinear full covariance optimization zero-mean noise
 python run_experiment.py \
@@ -62,7 +64,8 @@ python run_experiment.py \
     --full_covariance \
     --dataset '4var-nonlinear' \
     --nonlinear \
-    --output_path results/$DIR/bayesian/4var-nonlinear/fullcov-zeromean
+    --proposal_type 'uniform' \
+    --output_path results/$DIR/bayesian/4var-nonlinear/fullcov-zeromean-uniform
 
 # 4 variable nonlinear full covariance optimization nonzero-mean noise
 python run_experiment.py \
@@ -79,4 +82,5 @@ python run_experiment.py \
     --dataset '4var-nonlinear' \
     --nonlinear \
     --nonzero_centered \
-    --output_path results/$DIR/bayesian/4var-nonlinear/fullcov-nonzeromean
+    --proposal_type 'uniform' \
+    --output_path results/$DIR/bayesian/4var-nonlinear/fullcov-nonzeromean-uniform

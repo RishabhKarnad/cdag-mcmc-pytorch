@@ -11,6 +11,7 @@ import os
 import logging
 
 from samplers.cdag_mcmc_sampler import CDAGSampler
+from samplers.cdag_mcmc_sampler_locally_informed import LocallyInformedCDAGSampler
 from data import DataGen
 from models import CDAGJointDistribution, ClusterLinearGaussianNetwork
 from utils.metrics import nll, expected_nll, rand_index, expected_rand_index, mutual_information_score, expected_mutual_information_score, shd_expanded_graph, expected_shd, shd_expanded_mixed_graph, expected_cpdag_shd
@@ -61,6 +62,11 @@ def parse_args():
                         action=BooleanOptionalAction, default=False)
     parser.add_argument('--full_covariance',
                         action=BooleanOptionalAction, default=False)
+
+    parser.add_argument('--proposal_type', type=str, choices=[
+        'uniform',
+        'locally_informed',
+    ])
 
     parser.add_argument('--output_path', type=str)
 
@@ -160,7 +166,7 @@ def evaluate_samples(*, C_true, G_true, samples, scores, model, data, filepath):
     # logging.info(f'\tMSE (Theta): {mse_theta_mode}')
 
 
-def train(model, data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_clusters):
+def train(model, data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters, max_clusters, proposal_type):
     loss_trace = []
     samples = []
     scores = []
@@ -182,11 +188,18 @@ def train(model, data, max_em_iters, n_mcmc_samples, n_mcmc_warmup, min_clusters
 
         model.to('cpu')
 
-        cdag_sampler = CDAGSampler(data=data,
-                                   score=score,
-                                   min_clusters=min_clusters,
-                                   max_clusters=max_clusters,
-                                   initial_sample=initial_cdag_sample)
+        if proposal_type == 'uniform':
+            cdag_sampler = CDAGSampler(data=data,
+                                       score=score,
+                                       min_clusters=min_clusters,
+                                       max_clusters=max_clusters,
+                                       initial_sample=initial_cdag_sample)
+        elif proposal_type == 'locally_informed':
+            cdag_sampler = LocallyInformedCDAGSampler(data=data,
+                                                      score=score,
+                                                      min_clusters=min_clusters,
+                                                      max_clusters=max_clusters,
+                                                      initial_sample=initial_cdag_sample)
 
         with torch.no_grad():
             cdag_sampler.sample(n_samples=n_mcmc_samples,
@@ -334,7 +347,8 @@ def run(args):
                                                                      args.n_mcmc_samples,
                                                                      args.n_mcmc_warmup,
                                                                      args.min_clusters,
-                                                                     args.max_clusters)
+                                                                     args.max_clusters,
+                                                                     args.proposal_type)
 
         model_state_dict = model.state_dict()
         torch.save(model_state_dict, f'{args.output_path}/model.pt')
