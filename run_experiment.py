@@ -30,11 +30,17 @@ def parse_args():
     parser.add_argument('--dataset', type=str, choices=[
         'full7var',
         '3var',
+        '3var-nonlinear',
         '4var',
+        '4var-nonlinear',
         '7var',
+        '7var-nonlinear',
         'sachs',
         'housing',
     ])
+
+    parser.add_argument('--nonlinear',
+                        action=BooleanOptionalAction, default=False)
 
     parser.add_argument('--nonzero_centered',
                         action=BooleanOptionalAction, default=False)
@@ -230,16 +236,37 @@ def gen_data(args):
             n_samples=args.n_data_samples,
             confounded=True,
             zero_centered=args.zero_centered)
+    elif args.dataset == '7var-nonlinear':
+        return datagen.generate_random_group_scm_nonlinear_data(
+            n_samples=args.n_data_samples,
+            group_sizes=[3, 2, 2],
+            zero_centered=args.zero_centered,
+            sigma=0.1,
+            rho=0.99)
     elif args.dataset == 'full7var':
         return datagen.generate_scm_data(n_samples=args.n_data_samples)
     elif args.dataset == '3var':
         return datagen.generate_group_scm_data_small_dag(
             n_samples=args.n_data_samples,
             zero_centered=args.zero_centered)
+    elif args.dataset == '3var-nonlinear':
+        return datagen.generate_random_group_scm_nonlinear_data(
+            n_samples=args.n_data_samples,
+            group_sizes=[2, 1],
+            zero_centered=args.zero_centered,
+            sigma=0.1,
+            rho=0.99)
     elif args.dataset == '4var':
         return datagen.generate_group_scm_data_small_dag_4vars(
             n_samples=args.n_data_samples,
             zero_centered=args.zero_centered)
+    elif args.dataset == '4var-nonlinear':
+        return datagen.generate_random_group_scm_nonlinear_data(
+            n_samples=args.n_data_samples,
+            group_sizes=[2, 2],
+            zero_centered=args.zero_centered,
+            sigma=0.1,
+            rho=0.99)
     elif args.dataset == 'sachs':
         return datagen.get_sachs_data()
     elif args.dataset == 'housing':
@@ -272,12 +299,12 @@ def run(args):
         logging.info(theta_true)
         logging.info('True covariance')
         logging.info(Cov_true)
-        clgn = ClusterLinearGaussianNetwork(n)
-        clgn.fc.weight.data = theta_true.T
-        clgn.fc.bias.data = torch.zeros(n)
-        logging.info('Ground truth NLL')
-        logging.info(clgn
-                     .logpmf(data, clustering_to_matrix(grouping), group_dag))
+        # clgn = ClusterLinearGaussianNetwork(n)
+        # clgn.fc.weight.data = theta_true.T
+        # clgn.fc.bias.data = torch.zeros(n)
+        # logging.info('Ground truth NLL')
+        # logging.info(clgn
+        #              .logpmf(data, clustering_to_matrix(grouping), group_dag))
     logging.info(
         '============================================================')
 
@@ -298,7 +325,8 @@ def run(args):
                                       full_covariance=args.full_covariance,
                                       min_clusters=args.min_clusters,
                                       mean_clusters=args.max_clusters,
-                                      max_clusters=args.max_clusters)
+                                      max_clusters=args.max_clusters,
+                                      nonlinear=args.nonlinear)
 
         cdag_samples, cdag_scores, loss_trace, G_C_proposals = train(model,
                                                                      data,
@@ -316,7 +344,8 @@ def run(args):
                                             full_covariance=args.full_covariance,
                                             min_clusters=args.min_clusters,
                                             mean_clusters=args.max_clusters,
-                                            max_clusters=args.max_clusters)
+                                            max_clusters=args.max_clusters,
+                                            nonlinear=args.nonlinear)
         score_model.load_state_dict(model_state_dict)
 
         if theta_true is not None:

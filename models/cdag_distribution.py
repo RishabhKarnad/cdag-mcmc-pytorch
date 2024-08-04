@@ -4,6 +4,7 @@ import scipy.stats as stats
 from .clustering_distribution import ClusteringDistribution
 from .graph_distribution import SparseDAGDistribution
 from .cluster_linear_gaussian_network import ClusterLinearGaussianNetwork, ClusterLinearGaussianNetworkFullCov
+from .cluster_nonlinear_gaussian_network import ClusterNonlinearGaussianNetwork, ClusterNonlinearGaussianNetworkFullCov
 from utils.cdag import clustering_to_matrix
 from utils.dataset import CustomDataset
 
@@ -15,7 +16,8 @@ class CDAGJointDistribution(torch.nn.Module):
                  mean_clusters,
                  max_clusters,
                  optimize_cov=False,
-                 full_covariance=False):
+                 full_covariance=False,
+                 nonlinear=False):
         super().__init__()
         self.n_vars = n_vars
         self.min_clusters = min_clusters
@@ -23,11 +25,19 @@ class CDAGJointDistribution(torch.nn.Module):
         self.max_clusters = max_clusters
         self.cluster_prior = ClusteringDistribution(n_vars, max_clusters)
         self.graph_prior = SparseDAGDistribution(n_vars)
-        if full_covariance:
-            self.likelihood = ClusterLinearGaussianNetworkFullCov(n_vars)
+        if nonlinear:
+            if full_covariance:
+                self.likelihood = ClusterNonlinearGaussianNetworkFullCov(
+                    n_vars, max_clusters)
+            else:
+                self.likelihood = ClusterNonlinearGaussianNetwork(
+                    n_vars, max_clusters, optimize_cov=optimize_cov)
         else:
-            self.likelihood = ClusterLinearGaussianNetwork(
-                n_vars, optimize_cov=optimize_cov)
+            if full_covariance:
+                self.likelihood = ClusterLinearGaussianNetworkFullCov(n_vars)
+            else:
+                self.likelihood = ClusterLinearGaussianNetwork(
+                    n_vars, optimize_cov=optimize_cov)
 
     def logpmf(self, C, G, X, batch=False):
         k = len(C)

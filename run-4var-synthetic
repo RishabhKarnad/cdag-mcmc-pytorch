@@ -19,7 +19,7 @@ MIN_CLUSTERS=2
 MAX_CLUSTERS=2
 
 
-# 3 variable zero-mean noise
+# 4 variable zero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -32,7 +32,7 @@ python run_experiment.py \
     --dataset '4var' \
     --output_path results/$DIR/bayesian/4var/fixedcov-zeromean
 
-# 3 variable nonzero-mean noise
+# 4 variable nonzero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -46,7 +46,7 @@ python run_experiment.py \
     --nonzero_centered \
     --output_path results/$DIR/bayesian/4var/fixedcov-nonzeromean
 
-# 3 variable full covariance optimization zero-mean noise
+# 4 variable full covariance optimization zero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -61,7 +61,7 @@ python run_experiment.py \
     --dataset '4var' \
     --output_path results/$DIR/bayesian/4var/fullcov-zeromean
 
-# 3 variable full covariance optimization nonzero-mean noise
+# 4 variable full covariance optimization nonzero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \

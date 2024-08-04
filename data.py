@@ -2,12 +2,8 @@ import numpy as np
 import torch
 from torch.distributions import MultivariateNormal
 import networkx as nx
-import matplotlib.pyplot as plt
-import igraph as ig
-import scipy
-from functools import reduce
 
-from utils.cdag import clustering_to_matrix
+from utils.cdag import clustering_to_matrix, get_covariance_for_clustering
 
 
 class DataGen:
@@ -203,76 +199,78 @@ class DataGen:
         Cov_true[2:4, 2:4] = sigma_2
         return X, (G_expand, W, Cov_true, clus, G_C)
 
-    def viz_graph(adjacency_matrix, graph_lib='igraph'):
-        G = nx.from_numpy_array(
-            adjacency_matrix, create_using=nx.MultiDiGraph())
-        g = ig.Graph.from_networkx(G)
-        g.vs['label'] = g.vs['_nx_name']
+    def generate_er_dag(self, n, p):
+        L = torch.tril(torch.distributions.Bernoulli(
+            probs=p).sample((n, n)), -1)
+        perm = torch.randperm(n)
+        return L[np.ix_(perm, perm)]
 
-        if graph_lib == 'igraph':
-            fig, ax = plt.subplots()
-            ig.plot(g, target=ax)
-        elif graph_lib == 'nx':
-            nx.draw_circular(G, with_labels=True)
+    def create_clustering(self, group_sizes):
+        clustering = []
+        total_vars = 0
+        for size in group_sizes:
+            clustering.append(set(range(total_vars, size + total_vars)))
+            total_vars += size
+        return clustering
 
-    def compute_fullcov(self):
-        n_vars = self.theta.shape[0]
-        lambda_ = torch.linalg.inv(torch.eye(n_vars) - self.theta)
-        D = self.obs_noise * torch.eye(n_vars)
-        Cov = lambda_.T@D@lambda_
-        return Cov
+    @staticmethod
+    def get_theta(theta, x, y):
+        idx = (np.repeat(x, len(y)), np.tile(y, len(x)))
+        return theta[idx].reshape((len(x), len(y)))
 
-    def compute_noisycov(self, C):
-        # C: nvars x nclus
-        nvars, nclus = C.shape
-        Cov_true = self.compute_fullcov()
-        G_cov = C@C.T
-        G_anticov = torch.ones((nvars, nvars))-G_cov
-        Cov_mask_true = G_cov*Cov_true
-        Cov_noise = scipy.stats.wishart.rvs(nvars, 100, size=(5, 5))
-        Cov_mask_true_noise = Cov_mask_true+G_anticov*Cov_noise
-        return Cov_mask_true_noise, Cov_mask_true
+    def generate_random_group_scm_nonlinear_data(self, n_samples=100, *,
+                                                 group_sizes=[3, 2, 2],
+                                                 group_dag_density=0.2,
+                                                 zero_centered=True,
+                                                 sigma=1.0,
+                                                 rho=0.9):
+        G_C = self.generate_er_dag(len(group_sizes), group_dag_density)
 
-    def get_index(self, arr):
-        len_ = len(arr)
-        idx = torch.zeros((len_*len_, 2))
-        idx[:, 0] = np.reshape(np.tile(np.c_[arr], len_), len_*len_)
-        idx[:, 1] = np.tile(arr, len_)
-        idx = idx.astype(np.int64)
-        return idx
+        C_list = self.create_clustering(group_sizes)
+        C = clustering_to_matrix(C_list, len(group_sizes))
 
-    def compute_joint2condcov(self, adj, C_true, Cov_joint):
-        C_group = [np.where(C_j > 0)[0].tolist() for C_j in C_true.T]
-        G = nx.from_numpy_array(adj, create_using=nx.MultiDiGraph())
-        Cond_Cov = []
-        for node in G.nodes:
-            parents = list(G.predecessors(node))
+        Cov_true = get_covariance_for_clustering(C, sigma, rho)
+
+        G_expand = C@G_C@C.T
+        n = G_expand.shape[0]
+
+        sign = torch.randint(0, 2, (n, n)) * 2 - 1
+        theta_1 = torch.distributions.Uniform(
+            low=2, high=5).sample((n, n)) * sign
+        theta_2 = torch.distributions.Uniform(
+            low=2, high=5).sample((n, n)) * sign
+
+        if zero_centered:
+            mu = torch.zeros((2, n))
+        else:
+            mu = torch.randn((2, n)) * 10
+
+        Z = torch.distributions.MultivariateNormal(
+            torch.zeros(n), Cov_true).sample((n_samples,))
+
+        X = torch.zeros((Z.shape))
+
+        Graph_c = nx.from_numpy_array(
+            G_C.numpy(), create_using=nx.MultiDiGraph())
+        for node in Graph_c.nodes:
+            parents = list(Graph_c.predecessors(node))
             if parents:
-                node_group = C_group[node]
-                parent_group = sorted(sum([C_group[i] for i in parents], []))
-                arr = torch.tensor(node_group+parent_group)
-                len_ = len(arr)
-                split_index = len(node_group)
-                idx = self.get_index(arr)
-                Cov_full = Cov_joint[(idx[:, 0], idx[:, 1])]
-                Cov_full = Cov_full.reshape((len_, len_))
-                # CovX|Y=CovX-beta*CovY*beta_T
-                # beta=CovXY*CovY-1
-                beta = Cov_full[:split_index, split_index:]@torch.linalg.inv(
-                    Cov_full[split_index:, split_index:])
-                Cov_ = Cov_full[:split_index, :split_index] - \
-                    beta@Cov_full[split_index:, split_index:]@beta.T
+                idx_p, idx_ch = [
+                    val for i in parents for val in C_list[i]], list(C_list[node])
+
+                theta_l1 = self.get_theta(theta_1, idx_p, idx_ch)
+                theta_l2 = self.get_theta(theta_2, idx_ch, idx_ch)
+
+                mu_l1 = mu[0, idx_ch]
+                mu_l2 = mu[1, idx_ch]
+
+                X[:, idx_ch] = torch.relu(
+                    Z[:, idx_p]@theta_l1 + mu_l1)@theta_l2+mu_l2+Z[:, idx_ch]
             else:
-                node_group = C_group[node]
-                arr = torch.tensor(node_group)
-                len_ = len(arr)
-                idx = self.get_index(arr)
-                Cov_full = Cov_joint[(idx[:, 0], idx[:, 1])]
-                Cov_full = Cov_full.reshape((len_, len_))
-                Cov_ = Cov_full
+                idx_ch = list(C_list[node])
+                mu_l2 = mu[1, idx_ch]
+                X[:, idx_ch] = Z[:, idx_ch]+mu_l2
 
-            Cond_Cov.append(Cov_)
-            Cond_Cov_mat = reduce(
-                lambda a, b: scipy.linalg.block_diag(a, b), Cond_Cov)
+        W = torch.concatenate((theta_1 * G_expand, theta_2*(C@C.T)))
 
-        return Cond_Cov_mat
+        return X, (G_expand, W, Cov_true, C_list, G_C)

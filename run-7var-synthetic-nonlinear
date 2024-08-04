@@ -4,10 +4,10 @@ DIR=$(date +"%Y-%m-%d-%T")
 
 CUDA_VISIBLE_DEVICES='0'
 
-mkdir -p results/$DIR/bayesian/7var/fixedcov-zeromean
-mkdir -p results/$DIR/bayesian/7var/fixedcov-nonzeromean
-mkdir -p results/$DIR/bayesian/7var/fullcov-zeromean
-mkdir -p results/$DIR/bayesian/7var/fullcov-nonzeromean
+mkdir -p results/$DIR/bayesian/7var-nonlinear/fixedcov-zeromean
+mkdir -p results/$DIR/bayesian/7var-nonlinear/fixedcov-nonzeromean
+mkdir -p results/$DIR/bayesian/7var-nonlinear/fullcov-zeromean
+mkdir -p results/$DIR/bayesian/7var-nonlinear/fullcov-nonzeromean
 
 N_DATA_SAMPLES=1000
 N_MCMC_SAMPLES=2000
@@ -19,7 +19,7 @@ MIN_CLUSTERS=3
 MAX_CLUSTERS=3
 
 
-# 7 variable zero-mean noise
+# 7 variable nonlinear zero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -29,10 +29,11 @@ python run_experiment.py \
     --min_clusters $MIN_CLUSTERS \
     --max_clusters $MAX_CLUSTERS \
     --num_chains $NUM_CHAINS \
-    --dataset '7var' \
-    --output_path results/$DIR/bayesian/7var/fixedcov-zeromean
+    --dataset '7var-nonlinear' \
+    --nonlinear \
+    --output_path results/$DIR/bayesian/7var-nonlinear/fixedcov-zeromean
 
-# 7 variable nonzero-mean noise
+# 7 variable nonlinear nonzero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -42,11 +43,12 @@ python run_experiment.py \
     --min_clusters $MIN_CLUSTERS \
     --max_clusters $MAX_CLUSTERS \
     --num_chains $NUM_CHAINS \
-    --dataset '7var' \
+    --dataset '7var-nonlinear' \
+    --nonlinear \
     --nonzero_centered \
-    --output_path results/$DIR/bayesian/7var/fixedcov-nonzeromean
+    --output_path results/$DIR/bayesian/7var-nonlinear/fixedcov-nonzeromean
 
-# 7 variable full covariance optimization zero-mean noise
+# 7 variable nonlinear full covariance optimization zero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -58,10 +60,11 @@ python run_experiment.py \
     --num_chains $NUM_CHAINS \
     --optimize_covariance \
     --full_covariance \
-    --dataset '7var' \
-    --output_path results/$DIR/bayesian/7var/fullcov-zeromean
+    --dataset '7var-nonlinear' \
+    --nonlinear \
+    --output_path results/$DIR/bayesian/7var-nonlinear/fullcov-zeromean
 
-# 7 variable full covariance optimization nonzero-mean noise
+# 7 variable nonlinear full covariance optimization nonzero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -73,6 +76,7 @@ python run_experiment.py \
     --num_chains $NUM_CHAINS \
     --optimize_covariance \
     --full_covariance \
-    --dataset '7var' \
+    --dataset '7var-nonlinear' \
+    --nonlinear \
     --nonzero_centered \
-    --output_path results/$DIR/bayesian/7var/fullcov-nonzeromean
+    --output_path results/$DIR/bayesian/7var-nonlinear/fullcov-nonzeromean
