@@ -4,10 +4,10 @@ DIR=$(date +"%Y-%m-%d-%T")
 
 CUDA_VISIBLE_DEVICES='0'
 
-mkdir -p results/$DIR/bayesian/3var/fixedcov-zeromean-uniform
-mkdir -p results/$DIR/bayesian/3var/fixedcov-nonzeromean-uniform
-mkdir -p results/$DIR/bayesian/3var/fullcov-zeromean-uniform
-mkdir -p results/$DIR/bayesian/3var/fullcov-nonzeromean-uniform
+mkdir -p results/$DIR/bayesian/3var/fixedcov-zeromean-locally_informed
+mkdir -p results/$DIR/bayesian/3var/fixedcov-nonzeromean-locally_informed
+mkdir -p results/$DIR/bayesian/3var/fullcov-zeromean-locally_informed
+mkdir -p results/$DIR/bayesian/3var/fullcov-nonzeromean-locally_informed
 
 N_DATA_SAMPLES=1000
 N_MCMC_SAMPLES=1000
@@ -30,8 +30,8 @@ python run_experiment.py \
     --max_clusters $MAX_CLUSTERS \
     --num_chains $NUM_CHAINS \
     --dataset '3var' \
-    --proposal_type 'uniform' \
-    --output_path results/$DIR/bayesian/3var/fixedcov-zeromean-uniform
+    --proposal_type 'locally_informed' \
+    --output_path results/$DIR/bayesian/3var/fixedcov-zeromean-locally_informed
 
 # 3 variable nonzero-mean noise
 python run_experiment.py \
@@ -45,8 +45,8 @@ python run_experiment.py \
     --num_chains $NUM_CHAINS \
     --dataset '3var' \
     --nonzero_centered \
-    --proposal_type 'uniform' \
-    --output_path results/$DIR/bayesian/3var/fixedcov-nonzeromean-uniform
+    --proposal_type 'locally_informed' \
+    --output_path results/$DIR/bayesian/3var/fixedcov-nonzeromean-locally_informed
 
 # 3 variable full covariance optimization zero-mean noise
 python run_experiment.py \
@@ -61,8 +61,8 @@ python run_experiment.py \
     --optimize_covariance \
     --full_covariance \
     --dataset '3var' \
-    --proposal_type 'uniform' \
-    --output_path results/$DIR/bayesian/3var/fullcov-zeromean-uniform
+    --proposal_type 'locally_informed' \
+    --output_path results/$DIR/bayesian/3var/fullcov-zeromean-locally_informed
 
 # 3 variable full covariance optimization nonzero-mean noise
 python run_experiment.py \
@@ -78,5 +78,5 @@ python run_experiment.py \
     --full_covariance \
     --dataset '3var' \
     --nonzero_centered \
-    --proposal_type 'uniform' \
-    --output_path results/$DIR/bayesian/3var/fullcov-nonzeromean-uniform
+    --proposal_type 'locally_informed' \
+    --output_path results/$DIR/bayesian/3var/fullcov-nonzeromean-locally_informed

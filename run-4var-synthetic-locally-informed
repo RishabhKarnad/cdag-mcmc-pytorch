@@ -4,10 +4,10 @@ DIR=$(date +"%Y-%m-%d-%T")
 
 CUDA_VISIBLE_DEVICES='0'
 
-mkdir -p results/$DIR/bayesian/3var/fixedcov-zeromean-uniform
-mkdir -p results/$DIR/bayesian/3var/fixedcov-nonzeromean-uniform
-mkdir -p results/$DIR/bayesian/3var/fullcov-zeromean-uniform
-mkdir -p results/$DIR/bayesian/3var/fullcov-nonzeromean-uniform
+mkdir -p results/$DIR/bayesian/4var/fixedcov-zeromean-locally_informed
+mkdir -p results/$DIR/bayesian/4var/fixedcov-nonzeromean-locally_informed
+mkdir -p results/$DIR/bayesian/4var/fullcov-zeromean-locally_informed
+mkdir -p results/$DIR/bayesian/4var/fullcov-nonzeromean-locally_informed
 
 N_DATA_SAMPLES=1000
 N_MCMC_SAMPLES=1000
@@ -19,7 +19,7 @@ MIN_CLUSTERS=2
 MAX_CLUSTERS=2
 
 
-# 3 variable zero-mean noise
+# 4 variable zero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -29,11 +29,11 @@ python run_experiment.py \
     --min_clusters $MIN_CLUSTERS \
     --max_clusters $MAX_CLUSTERS \
     --num_chains $NUM_CHAINS \
-    --dataset '3var' \
-    --proposal_type 'uniform' \
-    --output_path results/$DIR/bayesian/3var/fixedcov-zeromean-uniform
+    --dataset '4var' \
+    --proposal_type 'locally_informed' \
+    --output_path results/$DIR/bayesian/4var/fixedcov-zeromean-locally_informed
 
-# 3 variable nonzero-mean noise
+# 4 variable nonzero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -43,12 +43,12 @@ python run_experiment.py \
     --min_clusters $MIN_CLUSTERS \
     --max_clusters $MAX_CLUSTERS \
     --num_chains $NUM_CHAINS \
-    --dataset '3var' \
+    --dataset '4var' \
     --nonzero_centered \
-    --proposal_type 'uniform' \
-    --output_path results/$DIR/bayesian/3var/fixedcov-nonzeromean-uniform
+    --proposal_type 'locally_informed' \
+    --output_path results/$DIR/bayesian/4var/fixedcov-nonzeromean-locally_informed
 
-# 3 variable full covariance optimization zero-mean noise
+# 4 variable full covariance optimization zero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -60,11 +60,11 @@ python run_experiment.py \
     --num_chains $NUM_CHAINS \
     --optimize_covariance \
     --full_covariance \
-    --dataset '3var' \
-    --proposal_type 'uniform' \
-    --output_path results/$DIR/bayesian/3var/fullcov-zeromean-uniform
+    --dataset '4var' \
+    --proposal_type 'locally_informed' \
+    --output_path results/$DIR/bayesian/4var/fullcov-zeromean-locally_informed
 
-# 3 variable full covariance optimization nonzero-mean noise
+# 4 variable full covariance optimization nonzero-mean noise
 python run_experiment.py \
     --n_data_samples $N_DATA_SAMPLES \
     --n_mcmc_samples $N_MCMC_SAMPLES \
@@ -76,7 +76,7 @@ python run_experiment.py \
     --num_chains $NUM_CHAINS \
     --optimize_covariance \
     --full_covariance \
-    --dataset '3var' \
+    --dataset '4var' \
     --nonzero_centered \
-    --proposal_type 'uniform' \
-    --output_path results/$DIR/bayesian/3var/fullcov-nonzeromean-uniform
+    --proposal_type 'locally_informed' \
+    --output_path results/$DIR/bayesian/4var/fullcov-nonzeromean-locally_informed

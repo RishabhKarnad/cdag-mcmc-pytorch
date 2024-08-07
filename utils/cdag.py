@@ -17,7 +17,7 @@ def stringify_cdag(G_C):
     P = make_permutation_matrix(list(map(lambda x: x[0], C_sorted)))
     E_C_sorted = P.T @ E_C @ P
     E_stringified = ','.join(
-        map(lambda x: str(x.item()), list(E_C_sorted.flatten())))
+        map(lambda x: str(int(x.item())), list(E_C_sorted.flatten())))
     cdag_stringified = C_stringified + ':' + E_stringified
     return cdag_stringified
 
